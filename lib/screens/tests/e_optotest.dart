@@ -659,7 +659,6 @@ class _TestScreenState extends State<TestScreen> {
   }
 
   // ---------------- UI ----------------
-
   @override
   Widget build(BuildContext context) {
     final currentLevelConfig = levels[_level];
@@ -686,16 +685,22 @@ class _TestScreenState extends State<TestScreen> {
             onPanStart: _onPanStart,
             onPanUpdate: _onPanUpdate,
             onPanEnd: _onPanEnd,
-            child: SizedBox.expand(
-              child: Center(
-                child: SingleChildScrollView(
-                  child: Transform.rotate(
-                    angle: _currentDirection.rotation,
-                    child: SvgPicture.asset(
-                      'assets/images/tests/e_optotype.svg',
-                      width: size.width,
-                      height: size.height,
-                    ),
+            // Center ensures the *center point* is in the middle of the screen
+            child: Center(
+              child: OverflowBox(
+                alignment: Alignment.center,
+                minWidth: 0,
+                minHeight: 0,
+                maxWidth: double.infinity,
+                maxHeight: double.infinity,
+                child: Transform.rotate(
+                  angle: _currentDirection.rotation,
+                  child: SvgPicture.asset(
+                    'assets/images/tests/e_optotype.svg',
+                    width: size.width,
+                    height: size.height,
+                    fit: BoxFit.none, // 🔥 do NOT scale to fit
+                    allowDrawingOutsideViewBox: true, // 🔥 allow SVG overflow
                   ),
                 ),
               ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:visual_acuity_for_surveys/utils/helpers.dart';
 
 class CalibrationScreen extends StatefulWidget {
   const CalibrationScreen({super.key});
@@ -9,138 +10,155 @@ class CalibrationScreen extends StatefulWidget {
 }
 
 class _CalibrationScreenState extends State<CalibrationScreen> {
+  // Display adjustment values in CM (user adjusts cm values)
   double widthCm = 5.0;
   double heightCm = 5.0;
-  double maxLuxAllowed = 15000;
-  final _luxController = TextEditingController();
+
+  // Final saved calibration factor
+  double? pxPerCm;
+
+  bool loading = true;
 
   @override
   void initState() {
     super.initState();
-
     _loadCalibration();
-    _loadLux();
   }
-  Future<void> _loadCalibration() async{
+
+  Future<void> _loadCalibration() async {
     final prefs = await SharedPreferences.getInstance();
-    double? temp = prefs.getDouble('calibrationWidthCm');
-    final wCm =  temp!=null? temp*5/100:5.0;
-    temp = prefs.getDouble('calibrationHeightCm');
-
-    final hCm = temp!=null? temp*5/100:5.0;
-    setState(() {
-      widthCm = wCm;
-      heightCm = hCm;
-    });
+    pxPerCm = prefs.getDouble('pxPerCm');
+    setState(() => loading = false);
   }
 
-  Future<void> _loadLux() async {
+  Future<void> _saveCalibration(double boxWidthPx) async {
     final prefs = await SharedPreferences.getInstance();
-    final lux = prefs.getDouble('maxLuxAllowed') ?? 15000;
-    setState(() {
-      maxLuxAllowed = lux;
-      _luxController.text = lux.toStringAsFixed(0);
-    });
-  }
 
-  Future<void> _saveCalibration() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('calibrationWidthCm', widthCm / 5 * 100);
-    await prefs.setDouble('calibrationHeightCm', heightCm / 5 * 100);
+    /// 🔥 Core formula
+    /// px per cm = displayed pixels / actual physical cm
+    final factor = boxWidthPx / widthCm;
 
-    final parsedLux = double.tryParse(_luxController.text);
-    if (parsedLux != null) {
-      maxLuxAllowed = parsedLux;
-      await prefs.setDouble('maxLuxAllowed', maxLuxAllowed);
-    }
+    await prefs.setDouble('pxPerCm', factor);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Calibration saved!')),
-    );
-  }
-
-  double _cmToLogicalPixels(BuildContext context, double cm) {
-    final ppi = MediaQuery.of(context).devicePixelRatio * 160;
-    final inches = cm / 2.54;
-    final physicalPixels = inches * ppi;
-    return physicalPixels / MediaQuery.of(context).devicePixelRatio;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("Calibration saved!")));
   }
 
   @override
   Widget build(BuildContext context) {
-    double boxWidth = _cmToLogicalPixels(context, widthCm);
-    double boxHeight = _cmToLogicalPixels(context, heightCm);
+    if (loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
-      appBar: AppBar(title: Text("Screen Calibration")),
+      appBar: AppBar(title: const Text("Screen Calibration")),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: SingleChildScrollView(
           child: Column(
             children: [
-              Text(
-                "Match the box below to 5cm x 5cm using a real ruler.",
+              const Text(
+                "Use a real ruler.\nMake the BLUE box exactly 5 cm × 5 cm.",
                 style: TextStyle(fontSize: 18),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 20),
-              Container(
-                width: boxWidth,
-                height: boxHeight,
-                color: Colors.blueAccent.withAlpha((0.5 * 255).round())
-                ,
-              ),
-              SizedBox(height: 20),
-              Text("Width: ${widthCm.toStringAsFixed(2)} cm"),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.remove_circle),
-                    iconSize: 36,
-                    onPressed: () => setState(() => widthCm = (widthCm - 0.1).clamp(1.0, 10.0)),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.add_circle),
-                    iconSize: 36,
-                    onPressed: () => setState(() => widthCm = (widthCm + 0.1).clamp(1.0, 10.0)),
-                  ),
-                ],
-              ),
-              Text("Height: ${heightCm.toStringAsFixed(2)} cm"),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.remove_circle),
-                    iconSize: 36,
-                    onPressed: () => setState(() => heightCm = (heightCm - 0.1).clamp(1.0, 10.0)),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.add_circle),
-                    iconSize: 36,
-                    onPressed: () => setState(() => heightCm = (heightCm + 0.1).clamp(1.0, 10.0)),
-                  ),
-                ],
-              ),
+
               const SizedBox(height: 20),
-              Text("Set Maximum Ambient Light (lux):"),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _luxController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Max Lux (e.g., 15000)',
+
+              // ---------------------- BLUE BOX ----------------------
+              FutureBuilder<double>(
+                future: cmToPx(context, widthCm),
+                builder: (context, snapshotW) {
+                  return FutureBuilder<double>(
+                    future: cmToPx(context, heightCm),
+                    builder: (context, snapshotH) {
+                      if (!snapshotW.hasData || !snapshotH.hasData) {
+                        return const SizedBox(
+                          width: 100,
+                          height: 100,
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+
+                      final boxWidthPx = snapshotW.data!;
+                      final boxHeightPx = snapshotH.data!;
+
+                      return Column(
+                        children: [
+                          Container(
+                            width: boxWidthPx,
+                            height: boxHeightPx,
+                            color: Colors.blue.withOpacity(0.4),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // ---------------- WIDTH CONTROL ----------------
+                          Text("Width: ${widthCm.toStringAsFixed(2)} cm"),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.remove_circle),
+                                iconSize: 36,
+                                onPressed: () => setState(() {
+                                  widthCm = (widthCm - 0.1).clamp(1.0, 20.0);
+                                }),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.add_circle),
+                                iconSize: 36,
+                                onPressed: () => setState(() {
+                                  widthCm = (widthCm + 0.1).clamp(1.0, 20.0);
+                                }),
+                              ),
+                            ],
+                          ),
+
+                          // ---------------- HEIGHT CONTROL ----------------
+                          Text("Height: ${heightCm.toStringAsFixed(2)} cm"),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.remove_circle),
+                                iconSize: 36,
+                                onPressed: () => setState(() {
+                                  heightCm = (heightCm - 0.1).clamp(1.0, 20.0);
+                                }),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.add_circle),
+                                iconSize: 36,
+                                onPressed: () => setState(() {
+                                  heightCm = (heightCm + 0.1).clamp(1.0, 20.0);
+                                }),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 40),
+
+                          ElevatedButton(
+                            onPressed: () => _saveCalibration(boxWidthPx),
+                            child: const Text("SAVE CALIBRATION"),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
+
+              const SizedBox(height: 40),
+
+              if (pxPerCm != null)
+                Text(
+                  "Current Calibration:\n1 cm ≈ ${pxPerCm!.toStringAsFixed(1)} px",
+                  style: const TextStyle(fontSize: 18),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text("Current Max Lux: ${maxLuxAllowed.toStringAsFixed(0)}"),
-              SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: _saveCalibration,
-                child: Text("Save Calibration"),
-              ),
             ],
           ),
         ),

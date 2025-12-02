@@ -5,8 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:device_info_sdk/device_info_sdk.dart';
+
 import '../Logger/logger.dart';
-Future<bool> checkAmbientLight(maxluxvalue,lightWarningShown, dynamic context) async {
+
+Future<bool> checkAmbientLight(
+  maxluxvalue,
+  lightWarningShown,
+  dynamic context,
+) async {
   try {
     final AmbientLight ambientLight = AmbientLight(frontCamera: true);
     double? lux = await ambientLight.currentAmbientLight();
@@ -18,14 +25,16 @@ Future<bool> checkAmbientLight(maxluxvalue,lightWarningShown, dynamic context) a
         barrierDismissible: false,
         builder: (context) => AlertDialog(
           title: Text("Too Bright!"),
-          content: Text("Ambient light is too high (${lux.toStringAsFixed(0)} lux).\nPlease go indoors."),
+          content: Text(
+            "Ambient light is too high (${lux.toStringAsFixed(0)} lux).\nPlease go indoors.",
+          ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
               child: Text("OK"),
-            )
+            ),
           ],
         ),
       );
@@ -45,25 +54,50 @@ Future<void> setBrightnessTo90() async {
   }
 }
 
-double cmToLogicalPixels(BuildContext context, double cm) {
-  final ppi = MediaQuery.of(context).devicePixelRatio * 160;
-  final inches = cm / 2.54;
-  final physicalPixels = inches * ppi;
-  return physicalPixels / MediaQuery.of(context).devicePixelRatio;
+/// Convert centimeters to logical pixels based on calibration if available.
+/// If not calibrated, uses device DPI estimation.
+Future<double> cmToPx(BuildContext context, double cm) async {
+  final prefs = await SharedPreferences.getInstance();
+
+  // 1️⃣ Use saved calibration if exists
+  final pxPerCm = prefs.getDouble('pxPerCm');
+  if (pxPerCm != null) {
+    return cm * pxPerCm;
+  }
+
+  // 2️⃣ Fallback: estimate using device DPI
+  final mq = MediaQuery.of(context);
+  final dpr = mq.devicePixelRatio;
+
+  // Approx baseline DPI = logical 160 dpi * physical scaling
+  final dpi = dpr * 160.0;
+
+  // Convert DPI -> px per cm  (1 inch = 2.54 cm)
+  final pxPerCmEstimate = dpi / 2.54;
+
+  // Logical px (Flutter units)
+  final logicalPxPerCm = pxPerCmEstimate / dpr;
+
+  return cm * logicalPxPerCm;
 }
 
 Future<Size> getCalibratedSvgSize(
-    BuildContext context, double widthCm, double heightCm) async {
+  BuildContext context,
+  double widthCm,
+  double heightCm,
+) async {
   final prefs = await SharedPreferences.getInstance();
-  final widthPct = prefs.getDouble('calibrationWidthCm') ?? 5.0;
-  final heightPct = prefs.getDouble('calibrationHeightCm') ?? 5.0;
+  final pxPerCm = prefs.getDouble('pxPerCm')!;
 
-  return Size(
-    cmToLogicalPixels(context, widthCm) * widthPct / 100,
-    cmToLogicalPixels(context, heightCm) * heightPct / 100,
+  final width = widthCm * pxPerCm;
+  final height = heightCm * pxPerCm;
+
+  logger.i(
+    "Calibrated SVG Size: ${width.toStringAsFixed(2)} x ${height.toStringAsFixed(2)} px",
   );
-}
 
+  return Size(width, height);
+}
 
 String detectSwipeDirection(Offset swipeDelta) {
   double angleDeg = atan2(swipeDelta.dy, swipeDelta.dx) * (180 / pi);

@@ -4,6 +4,8 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   ambient_light
+  battery_plus
+  connectivity_plus
   screen_brightness_windows
 )
 

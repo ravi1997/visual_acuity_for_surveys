@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:visual_acuity_for_surveys/component/scrollablecenteredsvg.dart';
 
 import '../../Logger/logger.dart';
 import '../../utils/helpers.dart';
@@ -169,7 +170,7 @@ const Map<int, Level> levels = {
   0: Level(
     levelNumber: 0,
     name: '3/60',
-    levelSize: 6.402,
+    levelSize: 2.91,
     distance: 1.0,
     nextLevelCorrection: null,
     nextLevelWrong: 6, // go to FC if fail 3/60
@@ -177,7 +178,7 @@ const Map<int, Level> levels = {
   1: Level(
     levelNumber: 1,
     name: '6/60',
-    levelSize: 9.592,
+    levelSize: 15,
     distance: 3.0,
     nextLevelCorrection: 2,
     nextLevelWrong: null, // special: demote to 0
@@ -185,7 +186,7 @@ const Map<int, Level> levels = {
   2: Level(
     levelNumber: 2,
     name: '6/19',
-    levelSize: 2.882,
+    levelSize: 3.036,
     distance: 3.0,
     nextLevelCorrection: 3,
     nextLevelWrong: null, // special: final 6/60
@@ -683,28 +684,32 @@ class _TestScreenState extends State<TestScreen> {
         );
 
         return Scaffold(
-          backgroundColor: const Color(0xFFFFFEF5),
+          backgroundColor: const Color.fromARGB(255, 153, 142, 45),
           body: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: _onPanStart,
             onPanUpdate: _onPanUpdate,
             onPanEnd: _onPanEnd,
             // Center ensures the *center point* is in the middle of the screen
-            child: Center(
-              child: OverflowBox(
-                alignment: Alignment.center,
-                minWidth: 0,
-                minHeight: 0,
-                maxWidth: double.infinity,
-                maxHeight: double.infinity,
-                child: Transform.rotate(
-                  angle: _currentDirection.rotation,
-                  child: SvgPicture.asset(
-                    'assets/images/tests/e_optotype.svg',
-                    width: size.width,
-                    height: size.height,
-                    fit: BoxFit.none, // 🔥 do NOT scale to fit
-                    allowDrawingOutsideViewBox: true, // 🔥 allow SVG overflow
+            child: Container(
+              width: double.infinity,
+              height: double.infinity,
+              color: const Color.fromARGB(0, 224, 14, 14),
+              child: ClipRect(
+                clipBehavior: Clip.none,
+                child: Align(
+                  alignment: Alignment.center,
+
+                  child: Transform.rotate(
+                    angle: _currentDirection.rotation,
+                    alignment: Alignment.center, // important!
+                    child: SvgPicture.asset(
+                      'assets/images/tests/e_optotype.svg',
+                      width: size.width,
+                      height: size.height,
+                      fit: BoxFit.none, // critical to avoid scaling
+                      allowDrawingOutsideViewBox: true,
+                    ),
                   ),
                 ),
               ),

@@ -76,6 +76,7 @@ flutter:
         - asset: assets/fonts/Optician-Sans.otf
   assets:
     - assets/images/tests/e_optotype.svg
+    - assets/images/tests/e_optotype2.svg
     - assets/images/tests/FC_1.svg
     - assets/images/tests/FC_2.svg
     - assets/images/tests/FC_3.svg

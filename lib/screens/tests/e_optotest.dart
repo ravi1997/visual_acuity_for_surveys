@@ -677,6 +677,10 @@ class _TestScreenState extends State<TestScreen> {
         }
 
         final size = snapshot.data!;
+        logger.i(
+          '📐 SVG will render: ${size.width.toStringAsFixed(2)} x ${size.height.toStringAsFixed(2)} px '
+          '(from $levelSizeCm cm)',
+        );
 
         return Scaffold(
           backgroundColor: const Color(0xFFFFFEF5),

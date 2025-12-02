@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:visual_acuity_for_surveys/utils/helpers.dart';
+import 'package:visual_acuity_for_surveys/Logger/logger.dart';
 
 class CalibrationScreen extends StatefulWidget {
   const CalibrationScreen({super.key});
@@ -10,11 +10,12 @@ class CalibrationScreen extends StatefulWidget {
 }
 
 class _CalibrationScreenState extends State<CalibrationScreen> {
-  // Display adjustment values in CM (user adjusts cm values)
-  double widthCm = 5.0;
-  double heightCm = 5.0;
+  static const double _targetCm = 5.0;
 
-  // Final saved calibration factor
+  // Logical px of the blue square the user adjusts with a ruler.
+  double _boxPx = 320.0;
+
+  // Final saved calibration factor (logical px per cm).
   double? pxPerCm;
 
   bool loading = true;
@@ -27,22 +28,58 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
 
   Future<void> _loadCalibration() async {
     final prefs = await SharedPreferences.getInstance();
-    pxPerCm = prefs.getDouble('pxPerCm');
-    setState(() => loading = false);
+    final saved = prefs.getDouble('pxPerCm');
+
+    setState(() {
+      pxPerCm = saved;
+      // If we already calibrated, pre-fill the box to that physical size.
+      if (saved != null) {
+        _boxPx = saved * _targetCm;
+      }
+      loading = false;
+    });
   }
 
-  Future<void> _saveCalibration(double boxWidthPx) async {
+  Future<void> _saveCalibration() async {
     final prefs = await SharedPreferences.getInstance();
 
-    /// 🔥 Core formula
-    /// px per cm = displayed pixels / actual physical cm
-    final factor = boxWidthPx / widthCm;
+    // Clean up any legacy calibration keys that might interfere.
+    const deprecatedKeys = <String>[
+      'calibrationWidthCm',
+      'calibrationHeightCm',
+      'calibrationWidthPx',
+      'calibrationHeightPx',
+    ];
+    for (final key in deprecatedKeys) {
+      if (prefs.containsKey(key)) {
+        await prefs.remove(key);
+      }
+    }
 
-    await prefs.setDouble('pxPerCm', factor);
+    /// Core formula:
+    /// pxPerCm = logical pixels on screen / physical cm measured with a ruler.
+    /// The user makes the square exactly _targetCm wide on their device.
+    final pxPerCm = _boxPx / _targetCm;
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Calibration saved!")));
+    await prefs.setDouble('pxPerCm', pxPerCm);
+
+    setState(() {
+      this.pxPerCm = pxPerCm;
+    });
+
+    logger.i(
+      '✅ Calibration SAVED: $_boxPx px (measured) / $_targetCm cm (target) = $pxPerCm px/cm',
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Calibration saved!\n'
+          '1 cm ≈ ${pxPerCm.toStringAsFixed(2)} px\n'
+          '(Box: ${_boxPx.toStringAsFixed(1)} px for $_targetCm cm)',
+        ),
+      ),
+    );
   }
 
   @override
@@ -58,104 +95,87 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              const Text(
-                "Use a real ruler.\nMake the BLUE box exactly 5 cm × 5 cm.",
-                style: TextStyle(fontSize: 18),
+              Text(
+                "Use a real ruler.\nAdjust the BLUE box until it measures exactly $_targetCm cm × $_targetCm cm on your screen.",
+                style: const TextStyle(fontSize: 18),
                 textAlign: TextAlign.center,
               ),
 
               const SizedBox(height: 20),
 
               // ---------------------- BLUE BOX ----------------------
-              FutureBuilder<double>(
-                future: cmToPx(context, widthCm),
-                builder: (context, snapshotW) {
-                  return FutureBuilder<double>(
-                    future: cmToPx(context, heightCm),
-                    builder: (context, snapshotH) {
-                      if (!snapshotW.hasData || !snapshotH.hasData) {
-                        return const SizedBox(
-                          width: 100,
-                          height: 100,
-                          child: Center(child: CircularProgressIndicator()),
-                        );
-                      }
+              Column(
+                children: [
+                  Container(
+                    width: _boxPx,
+                    height: _boxPx,
+                    color: Colors.blue.withOpacity(0.4),
+                  ),
 
-                      final boxWidthPx = snapshotW.data!;
-                      final boxHeightPx = snapshotH.data!;
-
-                      return Column(
-                        children: [
-                          Container(
-                            width: boxWidthPx,
-                            height: boxHeightPx,
-                            color: Colors.blue.withOpacity(0.4),
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // ---------------- WIDTH CONTROL ----------------
-                          Text("Width: ${widthCm.toStringAsFixed(2)} cm"),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.remove_circle),
-                                iconSize: 36,
-                                onPressed: () => setState(() {
-                                  widthCm = (widthCm - 0.1).clamp(1.0, 20.0);
-                                }),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.add_circle),
-                                iconSize: 36,
-                                onPressed: () => setState(() {
-                                  widthCm = (widthCm + 0.1).clamp(1.0, 20.0);
-                                }),
-                              ),
-                            ],
-                          ),
-
-                          // ---------------- HEIGHT CONTROL ----------------
-                          Text("Height: ${heightCm.toStringAsFixed(2)} cm"),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.remove_circle),
-                                iconSize: 36,
-                                onPressed: () => setState(() {
-                                  heightCm = (heightCm - 0.1).clamp(1.0, 20.0);
-                                }),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.add_circle),
-                                iconSize: 36,
-                                onPressed: () => setState(() {
-                                  heightCm = (heightCm + 0.1).clamp(1.0, 20.0);
-                                }),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 40),
-
-                          ElevatedButton(
-                            onPressed: () => _saveCalibration(boxWidthPx),
-                            child: const Text("SAVE CALIBRATION"),
-                          ),
-                        ],
-                      );
+                  const SizedBox(height: 16),
+                  Text(
+                    'Box size: ${_boxPx.toStringAsFixed(1)} px (logical)',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  Slider(
+                    min: 50,
+                    max: 900,
+                    divisions: 850,
+                    value: _boxPx.clamp(50, 900),
+                    label: '${_boxPx.toStringAsFixed(0)} px',
+                    onChanged: (value) {
+                      setState(() {
+                        _boxPx = value;
+                      });
                     },
-                  );
-                },
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _boxPx = (_boxPx - 2).clamp(50, 900);
+                          });
+                        },
+                        icon: const Icon(Icons.remove_circle),
+                        iconSize: 32,
+                      ),
+                      const SizedBox(width: 12),
+                      IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _boxPx = (_boxPx + 2).clamp(50, 900);
+                          });
+                        },
+                        icon: const Icon(Icons.add_circle),
+                        iconSize: 32,
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+                  Text(
+                    'Tip: align any one side to $_targetCm cm using a physical ruler. '
+                    'Do not change the on-screen cm target; instead adjust the px slider.',
+                    textAlign: TextAlign.center,
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  ElevatedButton(
+                    onPressed: _saveCalibration,
+                    child: const Text("SAVE CALIBRATION"),
+                  ),
+                ],
               ),
 
               const SizedBox(height: 40),
 
               if (pxPerCm != null)
                 Text(
-                  "Current Calibration:\n1 cm ≈ ${pxPerCm!.toStringAsFixed(1)} px",
+                  "Current Calibration:\n1 cm ≈ ${pxPerCm!.toStringAsFixed(2)} px",
                   style: const TextStyle(fontSize: 18),
                   textAlign: TextAlign.center,
                 ),

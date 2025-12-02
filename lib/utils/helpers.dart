@@ -5,8 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:device_info_sdk/device_info_sdk.dart';
-
 import '../Logger/logger.dart';
 
 Future<bool> checkAmbientLight(
@@ -55,28 +53,30 @@ Future<void> setBrightnessTo90() async {
 }
 
 /// Convert centimeters to logical pixels based on calibration if available.
-/// If not calibrated, uses device DPI estimation.
+/// Requires calibration to be saved first via CalibrationScreen.
+/// If not calibrated, uses baseline estimate (160 logical DPI).
 Future<double> cmToPx(BuildContext context, double cm) async {
   final prefs = await SharedPreferences.getInstance();
 
   // 1️⃣ Use saved calibration if exists
   final pxPerCm = prefs.getDouble('pxPerCm');
   if (pxPerCm != null) {
+    logger.i(
+      'cmToPx: $cm cm × $pxPerCm px/cm = ${(cm * pxPerCm).toStringAsFixed(2)} px',
+    );
     return cm * pxPerCm;
   }
 
-  // 2️⃣ Fallback: estimate using device DPI
-  final mq = MediaQuery.of(context);
-  final dpr = mq.devicePixelRatio;
+  // 2️⃣ Fallback: estimate using baseline logical DPI
+  // Flutter's standard logical DPI is 160 (device-independent)
+  const baselineLogicalDpi = 160.0;
+  final logicalPxPerCm = (baselineLogicalDpi / 2.54);
 
-  // Approx baseline DPI = logical 160 dpi * physical scaling
-  final dpi = dpr * 160.0;
-
-  // Convert DPI -> px per cm  (1 inch = 2.54 cm)
-  final pxPerCmEstimate = dpi / 2.54;
-
-  // Logical px (Flutter units)
-  final logicalPxPerCm = pxPerCmEstimate / dpr;
+  logger.w(
+    'cmToPx: No calibration found. Using baseline estimate: '
+    '$cm cm × $logicalPxPerCm px/cm = ${(cm * logicalPxPerCm).toStringAsFixed(2)} px. '
+    'Please run calibration for accuracy.',
+  );
 
   return cm * logicalPxPerCm;
 }
@@ -87,13 +87,38 @@ Future<Size> getCalibratedSvgSize(
   double heightCm,
 ) async {
   final prefs = await SharedPreferences.getInstance();
-  final pxPerCm = prefs.getDouble('pxPerCm')!;
+  final pxPerCm = prefs.getDouble('pxPerCm');
+
+  // Get device DPI for diagnostic logging
+  final mq = MediaQuery.of(context);
+  final dpr = mq.devicePixelRatio;
+
+  if (pxPerCm == null) {
+    logger.w(
+      'getCalibratedSvgSize: No calibration found. '
+      'Using baseline estimate. Please run calibration.',
+    );
+    // Fallback to baseline estimate
+    const baselineLogicalDpi = 160.0;
+    final logicalPxPerCm = (baselineLogicalDpi / 2.54);
+    final width = widthCm * logicalPxPerCm;
+    final height = heightCm * logicalPxPerCm;
+
+    logger.i(
+      'Calibrated SVG Size (fallback): '
+      '${width.toStringAsFixed(2)} x ${height.toStringAsFixed(2)} px | DPR=$dpr',
+    );
+
+    return Size(width, height);
+  }
 
   final width = widthCm * pxPerCm;
   final height = heightCm * pxPerCm;
 
   logger.i(
-    "Calibrated SVG Size: ${width.toStringAsFixed(2)} x ${height.toStringAsFixed(2)} px",
+    'Calibrated SVG Size (using $pxPerCm px/cm): '
+    '${width.toStringAsFixed(2)} x ${height.toStringAsFixed(2)} px | '
+    'Input: ${widthCm}cm x ${heightCm}cm | DPR=$dpr',
   );
 
   return Size(width, height);

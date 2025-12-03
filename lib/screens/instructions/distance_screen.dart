@@ -19,9 +19,11 @@ class DistanceScreen extends StatelessWidget {
   const DistanceScreen({super.key, required this.minimumDistanceMeters});
 
   String _getImageForDistance(double distance) {
-    if (distance <= 0.4) {
+    if (distance == 0.4) {
+      return 'assets/images/instructions/distance_40cm.png';
+    } else if (distance == 0.3) {
       return 'assets/images/instructions/distance_30cm.png';
-    } else if (distance <= 1.5) {
+    } else if (distance == 1.0) {
       return 'assets/images/instructions/distance_1m.png';
     } else {
       return 'assets/images/instructions/distance_3m.png';
@@ -47,13 +49,21 @@ class DistanceScreen extends StatelessWidget {
                 style: const TextStyle(fontSize: 16, color: Colors.black),
                 children: [
                   const TextSpan(text: 'Please ensure you are at least '),
-                  TextSpan(
-                    text: '${minimumDistanceMeters.toStringAsFixed(1)} meters',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  if (minimumDistanceMeters >= 1.0)
+                    TextSpan(
+                      text:
+                          '${minimumDistanceMeters.toStringAsFixed(1)} meters',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  if (minimumDistanceMeters < 1.0)
+                    TextSpan(
+                      text:
+                          '${(minimumDistanceMeters * 100).toStringAsFixed(0)} centimeters',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   const TextSpan(
                     text:
-                    ' away from the screen.\n\nUse a measuring tape, mark on the floor, or step back until you reach the correct distance.',
+                        ' away from the screen.\n\nUse a measuring tape, mark on the floor, or step back until you reach the correct distance.',
                   ),
                 ],
               ),

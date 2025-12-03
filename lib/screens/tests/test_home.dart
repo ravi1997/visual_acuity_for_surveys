@@ -76,6 +76,14 @@ class _PatientInputScreenState extends State<PatientInputScreen> {
         title: const Text('Patient Information'),
         centerTitle: true,
         backgroundColor: Colors.indigo,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home),
+            onPressed: () {
+              Navigator.pushNamed(context, '/tutorialSwipe');
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(

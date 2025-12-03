@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:visual_acuity_for_surveys/component/scrollablecenteredsvg.dart';
 
 import '../../Logger/logger.dart';
 import '../../utils/helpers.dart';
@@ -83,18 +83,16 @@ class _TestScreenWrapperState extends State<TestScreenWrapper> {
 
 enum Direction { up, down, left, right }
 
-extension DirectionX on Direction {
-  double get rotation {
-    switch (this) {
-      case Direction.up:
-        return pi / 2;
-      case Direction.down:
-        return -pi / 2;
-      case Direction.left:
-        return pi;
-      case Direction.right:
-        return 0;
-    }
+double _angleForDirection(Direction direction) {
+  switch (direction) {
+    case Direction.up:
+      return -math.pi / 2; // rotate CCW 90°
+    case Direction.right:
+      return 0.0;
+    case Direction.down:
+      return math.pi / 2; // rotate CW 90°
+    case Direction.left:
+      return math.pi; // 180°
   }
 }
 
@@ -112,9 +110,9 @@ Direction directionFromAngle(double angleDeg) {
   if (angleDeg >= -45 && angleDeg < 45) {
     return Direction.right;
   } else if (angleDeg >= 45 && angleDeg < 135) {
-    return Direction.up;
-  } else if (angleDeg >= -135 && angleDeg < -45) {
     return Direction.down;
+  } else if (angleDeg >= -135 && angleDeg < -45) {
+    return Direction.up;
   } else {
     return Direction.left;
   }
@@ -243,6 +241,58 @@ const Map<int, Level> levels = {
 
 // ---------------- Test Screen ----------------
 
+class CalibratedCenteredSvg extends StatelessWidget {
+  final String assetPath;
+  final double widthCm;
+  final double heightCm;
+  final Direction direction;
+
+  const CalibratedCenteredSvg({
+    super.key,
+    required this.assetPath,
+    required this.widthCm,
+    required this.heightCm,
+    this.direction = Direction.up,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Size>(
+      future: getCalibratedSvgSize(context, widthCm, heightCm),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final size = snapshot.data!;
+
+        return ClipRect(
+          child: SizedBox.expand(
+            // This sized box is exactly the screen size.
+            child: FittedBox(
+              // No scaling, just position the child.
+              fit: BoxFit.none,
+              alignment: Alignment.center,
+              child: SizedBox(
+                width: size.width,
+                height: size.height,
+                child: Transform.rotate(
+                  angle: _angleForDirection(direction),
+                  alignment: Alignment.center,
+                  child: SvgPicture.asset(
+                    assetPath,
+                    fit: BoxFit.fill, // uses the given width/height exactly
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class TestScreen extends StatefulWidget {
   final String patientInfo;
   final String visionType;
@@ -266,7 +316,6 @@ class _TestScreenState extends State<TestScreen> {
   static const String _keyIgnoredGestures = 'etest_ignoredGestures';
 
   // Constants
-  static const int _maxLuxValue = 15000;
   static const double _minVelocityThreshold = 100.0;
   static const double _distanceTolerance = 0.01; // for double comparisons
   static const double _minSwipeDistance = 10.0; // to ignore taps
@@ -274,6 +323,7 @@ class _TestScreenState extends State<TestScreen> {
   // State variables
   Direction _currentDirection = Direction.up;
 
+  int _maxLuxValue = 15000;
   int _level = 1;
   int _correctAtLevel = 0;
   int _wrongAtLevel = 0;
@@ -306,8 +356,8 @@ class _TestScreenState extends State<TestScreen> {
 
   void _initializeDefaults() {
     // Always start from level 1 and 3m
-    _level = 1; // CHANGED
-    _distance = levels[1]?.distance ?? 3.0; // CHANGED
+    _level = (widget.visionType == 'Near Vision') ? 5 : 1; // CHANGED
+    _distance = levels[_level]?.distance ?? 3.0; // CHANGED
     _correctAtLevel = 0;
     _wrongAtLevel = 0;
     _attemptsAtLevel = 0;
@@ -345,11 +395,12 @@ class _TestScreenState extends State<TestScreen> {
       _totalCorrect = prefs.getInt(_keyTotalCorrect) ?? _totalCorrect;
       _totalWrong = prefs.getInt(_keyTotalWrong) ?? _totalWrong;
       _ignoredGestures = prefs.getInt(_keyIgnoredGestures) ?? _ignoredGestures;
+      _maxLuxValue = prefs.getInt('maxLuxValue') ?? 15000;
     });
   }
 
   void _startAmbientLightTimer() {
-    _ambientLightTimer = Timer.periodic(const Duration(seconds: 15), (
+    _ambientLightTimer = Timer.periodic(const Duration(seconds: 5), (
       timer,
     ) async {
       final ok = await checkAmbientLight(_maxLuxValue, false, context);
@@ -613,6 +664,13 @@ class _TestScreenState extends State<TestScreen> {
 
   void _setLevel(int newLevel, {double? overrideDistance}) {
     final cfg = levels[newLevel];
+    if (overrideDistance != null) {
+      Navigator.pushNamed(
+        context,
+        '/distance',
+        arguments: {'distance': overrideDistance},
+      );
+    }
     setState(() {
       _level = newLevel;
       _distance = overrideDistance ?? cfg?.distance ?? _distance;
@@ -659,110 +717,37 @@ class _TestScreenState extends State<TestScreen> {
     );
   }
 
-  Future<double> boxCalculation(
-    double sizeCm, {
-    bool orientationIsPortrait = true,
-  }) async {
-    final pref = await SharedPreferences.getInstance();
-
-    final maxSizeCm = sizeCm * 11 / 5;
-
-    double max;
-
-    if (orientationIsPortrait) {
-      max = pref.getDouble('calibrationMaxHeightCm') ?? 0.0;
-    } else {
-      max = pref.getDouble('calibrationMaxWidthCm') ?? 0.0;
-    }
-    return maxSizeCm < max ? maxSizeCm : sizeCm;
-  }
-
   // ---------------- UI ----------------
   @override
   Widget build(BuildContext context) {
     final currentLevelConfig = levels[_level];
     logger.d('Building E Optotype Test Screen at level: $_level');
 
-    final levelSizeCm = currentLevelConfig?.levelSize ?? 8.73;
+    final levelSizeCm = (currentLevelConfig?.levelSize ?? 8.73) * 11 / 5;
     logger.d('Building E Optotype Test Screen at size: $levelSizeCm cm');
 
-    final widthCm = await boxCalculation(
-      levelSizeCm,
-      orientationIsPortrait:
-          _currentDirection != Direction.up &&
-          _currentDirection != Direction.down,
-    );
-
-    final heightCm = await boxCalculation(
-      levelSizeCm,
-      orientationIsPortrait:
-          !(_currentDirection != Direction.up &&
-              _currentDirection != Direction.down),
-    );
-
-    final svgAsset = () {
-      switch (_currentDirection) {
-        case Direction.up:
-          return 'assets/images/tests/e_optom_horizontal.svg';
-        case Direction.down:
-          return 'assets/images/tests/e_optom_horizontal.svg';
-        case Direction.left:
-          return 'assets/images/tests/e_optom_vertical.svg';
-        case Direction.right:
-          return 'assets/images/tests/e_optom_vertical.svg';
-      }
-    }();
-    
-
-    return FutureBuilder<Size>(
-      future: getCalibratedSvgSize(context, widthCm, heightCm),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        final size = snapshot.data!;
-        logger.i(
-          '📐 SVG will render: ${size.width.toStringAsFixed(2)} x ${size.height.toStringAsFixed(2)} px '
-          '(from $levelSizeCm cm)',
-        );
-
-        return Scaffold(
-          backgroundColor: const Color.fromARGB(255, 153, 142, 45),
-          body: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onPanStart: _onPanStart,
-            onPanUpdate: _onPanUpdate,
-            onPanEnd: _onPanEnd,
-            // Center ensures the *center point* is in the middle of the screen
-            child: Container(
-              width: double.infinity,
-              height: double.infinity,
-              color: const Color.fromARGB(0, 224, 14, 14),
-              child: ClipRect(
-                clipBehavior: Clip.none,
-                child: Align(
-                  alignment: Alignment.center,
-
-                  child: Transform.rotate(
-                    angle: _currentDirection.rotation,
-                    alignment: Alignment.center, // important!
-                    child: SvgPicture.asset(
-                      svgAsset,
-                      width: size.width,
-                      height: size.height,
-                      fit: BoxFit.none, // critical to avoid scaling
-                      allowDrawingOutsideViewBox: true,
-                    ),
-                  ),
-                ),
-              ),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          CalibratedCenteredSvg(
+            assetPath: 'assets/images/tests/e_optom_box.svg',
+            widthCm: levelSizeCm, // physical width in cm
+            heightCm: levelSizeCm, // physical height in cm
+            direction: _currentDirection, // up/down/left/right
+          ),
+          // 1️⃣ Full-screen gesture layer
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onPanStart: _onPanStart,
+              onPanUpdate: _onPanUpdate,
+              onPanEnd: _onPanEnd,
+              child: const SizedBox.expand(), // ensures full area
             ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }

@@ -8,6 +8,7 @@ import 'package:visual_acuity_for_surveys/screens/result.dart';
 import 'package:visual_acuity_for_surveys/screens/splash_screen.dart';
 import 'package:visual_acuity_for_surveys/screens/tests/e_optotest.dart';
 import 'package:visual_acuity_for_surveys/screens/tests/test_home.dart';
+import 'package:visual_acuity_for_surveys/screens/tutorial_swipe_screen.dart';
 import 'Logger/logger.dart';
 import 'screens/home_screen.dart';
 import 'screens/instructions_screen.dart';
@@ -43,6 +44,7 @@ class VisualAcuityApp extends StatelessWidget {
         '/distance': (context) => DistanceScreenWrapper(),
         '/instructions': (context) => const InstructionsScreen(),
         '/tutorial': (context) => TutorialScreen(),
+        '/tutorialSwipe': (context) => const TutorialSwipeScreen(),
         '/history': (context) => const HistoryScreen(),
         '/home': (context) => HomeScreen(),
       },

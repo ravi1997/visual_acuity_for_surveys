@@ -35,14 +35,14 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   path_provider: ^2.1.5
-  logger: ^2.5.0
+  logger: ^2.6.2
   shared_preferences: ^2.5.3
   excel: ^4.0.6
-  flutter_svg: ^2.1.0
-  screen_brightness: ^2.1.4
+  flutter_svg: ^2.2.3
+  screen_brightness: ^2.1.7
   torch_light: ^1.1.0
   lottie: ^3.3.0
-  ambient_light: ^0.1.3
+  ambient_light: ^0.1.4
   flutter_native_splash: ^2.4.4
   splash_view: ^2.0.1
   device_info_sdk: ^1.0.1
@@ -76,9 +76,6 @@ flutter:
         - asset: assets/fonts/Optician-Sans.otf
   assets:
     - assets/images/tests/e_optom_box.svg
-    - assets/images/tests/e_optom_horizontal.svg
-    - assets/images/tests/e_optom_vertical.svg
-    - assets/images/tests/e_optom.svg
     - assets/images/tests/FC_1.svg
     - assets/images/tests/FC_2.svg
     - assets/images/tests/FC_3.svg
@@ -86,10 +83,11 @@ flutter:
     - assets/images/instructions/distance_3m.png
     - assets/images/instructions/distance_1m.png
     - assets/images/instructions/distance_30cm.png
+    - assets/images/instructions/distance_40cm.png
     - assets/images/home_screen_image.gif
     - assets/images/tutorial/calibrate.png
     - assets/images/tutorial/distance.png
-    - assets/images/tutorial/swipe.png
+    - assets/images/tutorial/swipe.jpg
     - assets/images/tutorial/brightness.png
     - assets/images/tutorial/result.png
     - assets/animations/glow_eye.json

@@ -15,7 +15,9 @@ Future<bool> checkAmbientLight(
   try {
     final AmbientLight ambientLight = AmbientLight(frontCamera: true);
     double? lux = await ambientLight.currentAmbientLight();
-    // logger.d("lux : $lux");
+    // logger.d(
+    //   "lux : $lux | maxluxvalue : $maxluxvalue | lightWarningShown : $lightWarningShown",
+    // );
     if (lux != null && lux > maxluxvalue && !lightWarningShown) {
       lightWarningShown = true;
       showDialog(

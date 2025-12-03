@@ -11,12 +11,17 @@ class CalibrationScreen extends StatefulWidget {
 
 class _CalibrationScreenState extends State<CalibrationScreen> {
   static const double _targetCm = 5.0;
+  static const String _keyPxPerCm = 'pxPerCm';
+  static const String _keyMaxLux = 'maxLuxValue';
 
   // Logical px of the blue square the user adjusts with a ruler.
   double _boxPx = 320.0;
 
   // Final saved calibration factor (logical px per cm).
   double? pxPerCm;
+
+  // Max ambient light (lux) text controller
+  final TextEditingController _luxController = TextEditingController();
 
   bool loading = true;
 
@@ -26,16 +31,24 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
     _loadCalibration();
   }
 
+  @override
+  void dispose() {
+    _luxController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadCalibration() async {
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getDouble('pxPerCm');
+    final savedPxPerCm = prefs.getDouble(_keyPxPerCm);
+    final savedLux = prefs.getInt(_keyMaxLux) ?? 15000; // default 15000
 
     setState(() {
-      pxPerCm = saved;
+      pxPerCm = savedPxPerCm;
       // If we already calibrated, pre-fill the box to that physical size.
-      if (saved != null) {
-        _boxPx = saved * _targetCm;
+      if (savedPxPerCm != null) {
+        _boxPx = savedPxPerCm * _targetCm;
       }
+      _luxController.text = savedLux.toString();
       loading = false;
     });
   }
@@ -58,39 +71,48 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
       }
     }
 
+    // Parse lux value
+    final luxText = _luxController.text.trim();
+    final luxValue = int.tryParse(luxText);
+
+    if (luxValue == null || luxValue <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid positive max lux value.'),
+        ),
+      );
+      return;
+    }
+
     /// Core formula:
     /// pxPerCm = logical pixels on screen / physical cm measured with a ruler.
     /// The user makes the square exactly _targetCm wide on their device.
     final pxPerCm = _boxPx / _targetCm;
 
-    await prefs.setDouble('pxPerCm', pxPerCm);
+    await prefs.setDouble(_keyPxPerCm, pxPerCm);
+    await prefs.setInt(_keyMaxLux, luxValue);
 
     setState(() {
       this.pxPerCm = pxPerCm;
     });
 
-    final totalWidthPx = MediaQuery.of(context).size.width;
-    final totalHeightPx = MediaQuery.of(context).size.height;
+    // final totalWidthPx = MediaQuery.of(context).size.width;
+    // final totalHeightPx = MediaQuery.of(context).size.height;
 
-    final maxWidthCm = totalWidthPx / pxPerCm;
-    final maxHeightCm = totalHeightPx / pxPerCm;
+    // final maxWidthCm = totalWidthPx / pxPerCm;
+    // final maxHeightCm = totalHeightPx / pxPerCm;
 
-    await prefs.setDouble('calibrationMaxWidthCm', maxWidthCm);
-    await prefs.setDouble('calibrationMaxHeightCm', maxHeightCm);
+    // await prefs.setDouble('calibrationMaxWidthCm', maxWidthCm);
+    // await prefs.setDouble('calibrationMaxHeightCm', maxHeightCm);
 
     logger.i(
-      '✅ Calibration SAVED: $_boxPx px (measured) / $_targetCm cm (target) = $pxPerCm px/cm',
+      '✅ Calibration SAVED: $_boxPx px (measured) / $_targetCm cm (target) '
+      '= $pxPerCm px/cm, maxLux=$luxValue',
     );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Calibration saved!\n'
-          '1 cm ≈ ${pxPerCm.toStringAsFixed(2)} px\n'
-          '(Box: ${_boxPx.toStringAsFixed(1)} px for $_targetCm cm)',
-        ),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Calibration saved!')));
   }
 
   @override
@@ -107,7 +129,8 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
           child: Column(
             children: [
               Text(
-                "Use a real ruler.\nAdjust the BLUE box until it measures exactly $_targetCm cm × $_targetCm cm on your screen.",
+                "Use a real ruler.\nAdjust the BLUE box until it measures exactly "
+                "$_targetCm cm × $_targetCm cm on your screen.",
                 style: const TextStyle(fontSize: 18),
                 textAlign: TextAlign.center,
               ),
@@ -175,6 +198,21 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
 
                   const SizedBox(height: 24),
 
+                  // ---------------------- MAX LUX INPUT ----------------------
+                  TextField(
+                    controller: _luxController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Max ambient light (lux)',
+                      hintText: 'e.g. 15000',
+                      helperText:
+                          'Above this lux value, test can be considered invalid.',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
                   ElevatedButton(
                     onPressed: _saveCalibration,
                     child: const Text("SAVE CALIBRATION"),
@@ -182,14 +220,15 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
                 ],
               ),
 
-              const SizedBox(height: 40),
+              // const SizedBox(height: 40),
 
-              if (pxPerCm != null)
-                Text(
-                  "Current Calibration:\n1 cm ≈ ${pxPerCm!.toStringAsFixed(2)} px",
-                  style: const TextStyle(fontSize: 18),
-                  textAlign: TextAlign.center,
-                ),
+              // if (pxPerCm != null)
+              //   Text(
+              //     "Current Calibration:\n1 cm ≈ ${pxPerCm!.toStringAsFixed(2)} px\n"
+              //     "Max ambient light: ${_luxController.text} lux",
+              //     style: const TextStyle(fontSize: 18),
+              //     textAlign: TextAlign.center,
+              //   ),
             ],
           ),
         ),

@@ -49,6 +49,8 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
       'calibrationHeightCm',
       'calibrationWidthPx',
       'calibrationHeightPx',
+      'calibrationMaxWidthCm',
+      'calibrationMaxHeightCm',
     ];
     for (final key in deprecatedKeys) {
       if (prefs.containsKey(key)) {
@@ -66,6 +68,15 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
     setState(() {
       this.pxPerCm = pxPerCm;
     });
+
+    final totalWidthPx = MediaQuery.of(context).size.width;
+    final totalHeightPx = MediaQuery.of(context).size.height;
+
+    final maxWidthCm = totalWidthPx / pxPerCm;
+    final maxHeightCm = totalHeightPx / pxPerCm;
+
+    await prefs.setDouble('calibrationMaxWidthCm', maxWidthCm);
+    await prefs.setDouble('calibrationMaxHeightCm', maxHeightCm);
 
     logger.i(
       '✅ Calibration SAVED: $_boxPx px (measured) / $_targetCm cm (target) = $pxPerCm px/cm',

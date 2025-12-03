@@ -178,7 +178,7 @@ const Map<int, Level> levels = {
   1: Level(
     levelNumber: 1,
     name: '6/60',
-    levelSize: 15,
+    levelSize: 4.36,
     distance: 3.0,
     nextLevelCorrection: 2,
     nextLevelWrong: null, // special: demote to 0
@@ -186,7 +186,7 @@ const Map<int, Level> levels = {
   2: Level(
     levelNumber: 2,
     name: '6/19',
-    levelSize: 3.036,
+    levelSize: 1.38,
     distance: 3.0,
     nextLevelCorrection: 3,
     nextLevelWrong: null, // special: final 6/60
@@ -194,7 +194,7 @@ const Map<int, Level> levels = {
   3: Level(
     levelNumber: 3,
     name: '6/12',
-    levelSize: 1.914,
+    levelSize: 0.87,
     distance: 3.0,
     nextLevelCorrection: 4,
     nextLevelWrong: null, // special: final 6/18
@@ -202,7 +202,7 @@ const Map<int, Level> levels = {
   4: Level(
     levelNumber: 4,
     name: '6/9.5',
-    levelSize: 1.430,
+    levelSize: 0.69,
     distance: 3.0,
     nextLevelCorrection: null, // final
     nextLevelWrong: null, // final
@@ -210,7 +210,7 @@ const Map<int, Level> levels = {
   5: Level(
     levelNumber: 5,
     name: 'N6',
-    levelSize: 0.330,
+    levelSize: 0.12,
     distance: 0.4,
     nextLevelCorrection: null, // final N6
     nextLevelWrong: null, // final N6-failed
@@ -659,6 +659,24 @@ class _TestScreenState extends State<TestScreen> {
     );
   }
 
+  Future<double> boxCalculation(
+    double sizeCm, {
+    bool orientationIsPortrait = true,
+  }) async {
+    final pref = await SharedPreferences.getInstance();
+
+    final maxSizeCm = sizeCm * 11 / 5;
+
+    double max;
+
+    if (orientationIsPortrait) {
+      max = pref.getDouble('calibrationMaxHeightCm') ?? 0.0;
+    } else {
+      max = pref.getDouble('calibrationMaxWidthCm') ?? 0.0;
+    }
+    return maxSizeCm < max ? maxSizeCm : sizeCm;
+  }
+
   // ---------------- UI ----------------
   @override
   Widget build(BuildContext context) {
@@ -668,8 +686,36 @@ class _TestScreenState extends State<TestScreen> {
     final levelSizeCm = currentLevelConfig?.levelSize ?? 8.73;
     logger.d('Building E Optotype Test Screen at size: $levelSizeCm cm');
 
+    final widthCm = await boxCalculation(
+      levelSizeCm,
+      orientationIsPortrait:
+          _currentDirection != Direction.up &&
+          _currentDirection != Direction.down,
+    );
+
+    final heightCm = await boxCalculation(
+      levelSizeCm,
+      orientationIsPortrait:
+          !(_currentDirection != Direction.up &&
+              _currentDirection != Direction.down),
+    );
+
+    final svgAsset = () {
+      switch (_currentDirection) {
+        case Direction.up:
+          return 'assets/images/tests/e_optom_horizontal.svg';
+        case Direction.down:
+          return 'assets/images/tests/e_optom_horizontal.svg';
+        case Direction.left:
+          return 'assets/images/tests/e_optom_vertical.svg';
+        case Direction.right:
+          return 'assets/images/tests/e_optom_vertical.svg';
+      }
+    }();
+    
+
     return FutureBuilder<Size>(
-      future: getCalibratedSvgSize(context, levelSizeCm, levelSizeCm),
+      future: getCalibratedSvgSize(context, widthCm, heightCm),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Scaffold(
@@ -704,7 +750,7 @@ class _TestScreenState extends State<TestScreen> {
                     angle: _currentDirection.rotation,
                     alignment: Alignment.center, // important!
                     child: SvgPicture.asset(
-                      'assets/images/tests/e_optotype.svg',
+                      svgAsset,
                       width: size.width,
                       height: size.height,
                       fit: BoxFit.none, // critical to avoid scaling

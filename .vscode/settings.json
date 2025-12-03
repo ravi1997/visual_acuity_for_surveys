@@ -4,7 +4,10 @@
         "**/.svn": true,
         "**/.hg": true,
         "**/.DS_Store": true,
-        "**/Thumbs.db": true
+        "**/Thumbs.db": true,
+        "**/flutter/ephemeral": true,
+        "**/.symlinks": true,
+        "**/.plugin_symlinks": true
     },
     "hide-files.files": []
 }

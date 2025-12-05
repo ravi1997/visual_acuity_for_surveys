@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "visual_acuity_for_surveys" "\0"
+            VALUE "FileDescription", "v_a_rpc" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "visual_acuity_for_surveys" "\0"
+            VALUE "InternalName", "v_a_rpc" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "visual_acuity_for_surveys.exe" "\0"
-            VALUE "ProductName", "visual_acuity_for_surveys" "\0"
+            VALUE "OriginalFilename", "v_a_rpc.exe" "\0"
+            VALUE "ProductName", "v_a_rpc" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

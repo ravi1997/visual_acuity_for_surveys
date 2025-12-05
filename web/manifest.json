@@ -1,6 +1,6 @@
 {
-    "name": "visual_acuity_for_surveys",
-    "short_name": "visual_acuity_for_surveys",
+    "name": "v_a_rpc",
+    "short_name": "v_a_rpc",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

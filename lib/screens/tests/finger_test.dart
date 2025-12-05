@@ -79,7 +79,19 @@ class _FingerTestState extends State<FingerTest> {
       logger.d("🔴 Answer is wrong. Total wrong: $wrongCount");
     }
 
-    if (userAnswers.length == 5) {
+    if (wrongCount >= 2) {
+      logger.d("❌ User reached 2 wrong answers. Ending test.");
+      widget.onComplete(correctCount, wrongCount);
+      return;
+    }
+
+    if (correctCount >= 4) {
+      logger.d("🎉 User reached 4 correct answers. Ending test.");
+      widget.onComplete(correctCount, wrongCount);
+      return;
+    }
+
+    if (userAnswers.length >= 5) {
       logger.d(
         "📊 All answers received. Final score - Correct: $correctCount, Wrong: $wrongCount",
       );
@@ -115,11 +127,11 @@ class _FingerTestState extends State<FingerTest> {
             const Text('How many black lines?'),
             Wrap(
               spacing: 10,
-              children: [1, 2, 3, 4]
+              children: [1, 2, 3, 4, 5]
                   .map(
                     (numVal) => ElevatedButton(
                       onPressed: () => _onUserAnswer(numVal),
-                      child: Text('$numVal'),
+                      child: Text((numVal == 5) ? "Can't see" : '$numVal'),
                     ),
                   )
                   .toList(),

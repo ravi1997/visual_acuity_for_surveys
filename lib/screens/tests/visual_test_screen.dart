@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:visual_acuity_for_surveys/screens/tests/pl_test.dart';
+import 'package:v_a_rpc/screens/tests/pl_test.dart';
 
 import 'finger_test.dart';
 
 class VisualTestScreen extends StatefulWidget {
   String patientInfo;
   String visionType;
-  VisualTestScreen({super.key,required this.patientInfo,
-    required this.visionType});
+  VisualTestScreen({
+    super.key,
+    required this.patientInfo,
+    required this.visionType,
+  });
 
   @override
   State<VisualTestScreen> createState() => _VisualTestScreenState();
@@ -45,8 +48,8 @@ class _VisualTestScreenState extends State<VisualTestScreen> {
         'totalCorrect': correctCount,
         'totalWrong': wrongCount,
         'ignoredGestures': 0,
-        'patientInfo':widget.patientInfo,
-        'visionType':widget.visionType
+        'patientInfo': widget.patientInfo,
+        'visionType': widget.visionType,
       },
     );
   }
@@ -54,9 +57,17 @@ class _VisualTestScreenState extends State<VisualTestScreen> {
   @override
   Widget build(BuildContext context) {
     if (!test1Completed) {
-      return FingerTest(patientInfo: widget.patientInfo, visionType: widget.visionType,onComplete: _onTest1Complete);
+      return FingerTest(
+        patientInfo: widget.patientInfo,
+        visionType: widget.visionType,
+        onComplete: _onTest1Complete,
+      );
     } else if (test2Started) {
-      return PlTest(patientInfo: widget.patientInfo, visionType: widget.visionType,onComplete: _onTest2Complete);
+      return PlTest(
+        patientInfo: widget.patientInfo,
+        visionType: widget.visionType,
+        onComplete: _onTest2Complete,
+      );
     } else {
       return const SizedBox();
     }

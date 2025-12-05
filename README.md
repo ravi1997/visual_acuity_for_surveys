@@ -1,4 +1,4 @@
-# visual_acuity_for_surveys
+# v_a_rpc
 
 This is an app for recording visual acuity for the survey purposes..
 

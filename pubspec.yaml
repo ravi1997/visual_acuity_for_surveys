@@ -1,5 +1,5 @@
-name: visual_acuity_for_surveys
-description: "This is an app for recording visual acuity for the survey purposes.."
+name: v_a_rpc
+description: "This is an app for recording visual acuity for rpc.."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

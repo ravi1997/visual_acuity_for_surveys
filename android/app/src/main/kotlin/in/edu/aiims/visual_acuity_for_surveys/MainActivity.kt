@@ -1,4 +1,4 @@
-package `in`.edu.aiims.visual_acuity_for_surveys
+package `in`.edu.aiims.v_a_rpc
 
 import io.flutter.embedding.android.FlutterActivity
 

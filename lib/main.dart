@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:splash_view/source/presentation/pages/splash_view.dart';
 import 'package:splash_view/source/presentation/widgets/done.dart';
-import 'package:visual_acuity_for_surveys/screens/calibraion_screen.dart';
-import 'package:visual_acuity_for_surveys/screens/history_screen.dart';
-import 'package:visual_acuity_for_surveys/screens/instructions/distance_screen.dart';
-import 'package:visual_acuity_for_surveys/screens/result.dart';
-import 'package:visual_acuity_for_surveys/screens/splash_screen.dart';
-import 'package:visual_acuity_for_surveys/screens/tests/e_optotest.dart';
-import 'package:visual_acuity_for_surveys/screens/tests/test_home.dart';
-import 'package:visual_acuity_for_surveys/screens/tutorial_swipe_screen.dart';
+import 'package:v_a_rpc/screens/about_screen.dart';
+import 'package:v_a_rpc/screens/calibraion_screen.dart';
+import 'package:v_a_rpc/screens/history_screen.dart';
+import 'package:v_a_rpc/screens/instructions/distance_screen.dart';
+import 'package:v_a_rpc/screens/result.dart';
+import 'package:v_a_rpc/screens/splash_screen.dart';
+import 'package:v_a_rpc/screens/tests/e_optotest.dart';
+import 'package:v_a_rpc/screens/tests/test_home.dart';
+import 'package:v_a_rpc/screens/tutorial_swipe_screen.dart';
 import 'Logger/logger.dart';
 import 'screens/home_screen.dart';
 import 'screens/instructions_screen.dart';
@@ -25,7 +26,7 @@ class VisualAcuityApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Visual Acuity Testing for surveys',
+      title: 'VA RPC',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue),
       home: SplashView(
@@ -47,6 +48,7 @@ class VisualAcuityApp extends StatelessWidget {
         '/tutorialSwipe': (context) => const TutorialSwipeScreen(),
         '/history': (context) => const HistoryScreen(),
         '/home': (context) => HomeScreen(),
+        '/about': (context) => const AboutScreen(),
       },
     );
   }

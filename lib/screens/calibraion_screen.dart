@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:visual_acuity_for_surveys/Logger/logger.dart';
+import 'package:v_a_rpc/Logger/logger.dart';
 
 class CalibrationScreen extends StatefulWidget {
   const CalibrationScreen({super.key});

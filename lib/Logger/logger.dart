@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
-import 'package:visual_acuity_for_surveys/Logger/socket_logger.dart';
+import 'package:v_a_rpc/Logger/socket_logger.dart';
 import 'debug_file_logger.dart';
 
 var logger = Logger(
@@ -42,4 +42,3 @@ final networkLogger = Logger(
   printer: PrettyPrinter(),
   output: SocketLogOutput(host: '127.0.0.1', port: 59540),
 );
-

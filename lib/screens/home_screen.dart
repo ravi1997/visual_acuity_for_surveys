@@ -5,7 +5,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Visual Acuity Testing for surveys')),
+      appBar: AppBar(title: Text('Visual Acuity RPC v1.0'), centerTitle: true),
       body: Center(
         child: SingleChildScrollView(
           child: Padding(
@@ -71,6 +71,7 @@ class HomeScreen extends StatelessWidget {
                   label: 'History',
                   route: '/history',
                 ),
+                _buildFullWidthButton(context, label: 'About', route: '/about'),
               ],
             ),
           ),

@@ -1,10 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="visual_acuity_for_surveys"
+        android:label="v_a_rpc"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
-            android:name="in.edu.aiims.visual_acuity_for_surveys.MainActivity"
+            android:name="in.edu.aiims.v_a_rpc.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""

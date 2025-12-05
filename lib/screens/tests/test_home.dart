@@ -77,11 +77,11 @@ class _PatientInputScreenState extends State<PatientInputScreen> {
         centerTitle: true,
         backgroundColor: Colors.indigo,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.home),
+          ElevatedButton(
             onPressed: () {
               Navigator.pushNamed(context, '/tutorialSwipe');
             },
+            child: const Text('Tutorial'),
           ),
         ],
       ),

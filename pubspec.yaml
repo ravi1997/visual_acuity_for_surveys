@@ -46,6 +46,7 @@ dependencies:
   flutter_native_splash: ^2.4.4
   splash_view: ^2.0.1
   device_info_sdk: ^1.0.1
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:

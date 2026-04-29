@@ -208,7 +208,7 @@ const Map<int, Level> levels = {
   5: Level(
     levelNumber: 5,
     name: 'N6',
-    levelSize: 0.12,
+    levelSize: 0.11,
     distance: 0.4,
     nextLevelCorrection: null, // final N6
     nextLevelWrong: null, // final N6-failed

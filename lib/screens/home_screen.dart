@@ -71,6 +71,11 @@ class HomeScreen extends StatelessWidget {
                   label: 'History',
                   route: '/history',
                 ),
+                _buildFullWidthButton(
+                  context,
+                  label: 'Settings',
+                  route: '/settings',
+                ),
                 _buildFullWidthButton(context, label: 'About', route: '/about'),
               ],
             ),

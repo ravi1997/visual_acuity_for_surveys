@@ -341,6 +341,20 @@ class _TestScreenState extends State<TestScreen> {
   Offset _swipeDelta = Offset.zero;
 
   SharedPreferences? _prefs;
+  Set<int> _disabledLevels = {};
+
+  int? _getNextEnabledLevel(int? targetLevel, bool isPass) {
+    int? current = targetLevel;
+    Set<int> visited = {};
+    while (current != null && _disabledLevels.contains(current)) {
+      if (visited.contains(current)) return null;
+      visited.add(current);
+      final cfg = levels[current];
+      if (cfg == null) return null;
+      current = isPass ? cfg.nextLevelCorrection : cfg.nextLevelWrong;
+    }
+    return current;
+  }
 
   // ---------------- Lifecycle ----------------
 
@@ -373,6 +387,9 @@ class _TestScreenState extends State<TestScreen> {
     final prefs = await SharedPreferences.getInstance();
     _prefs = prefs;
 
+    final disabledList = prefs.getStringList('disabledLevels') ?? [];
+    _disabledLevels = disabledList.map((e) => int.parse(e)).toSet();
+
     final hasLevelKey = prefs.containsKey(_keyLevel);
 
     if (!hasLevelKey) {
@@ -396,7 +413,21 @@ class _TestScreenState extends State<TestScreen> {
       _totalWrong = prefs.getInt(_keyTotalWrong) ?? _totalWrong;
       _ignoredGestures = prefs.getInt(_keyIgnoredGestures) ?? _ignoredGestures;
       _maxLuxValue = prefs.getInt('maxLuxValue') ?? 15000;
+
+      int startLevel = (widget.visionType == 'Near Vision') ? 5 : 1;
+      int? actualStartLevel = _getNextEnabledLevel(startLevel, true);
+      if (actualStartLevel != null) {
+        _level = actualStartLevel;
+        _distance = levels[_level]?.distance ?? 3.0;
+      } else {
+        _testCompleted = true;
+      }
     });
+
+    if (_testCompleted && mounted) {
+      // Delay so it doesn't conflict with any active navigations from wrapper
+      Future.microtask(() => _showSummary('No active levels'));
+    }
   }
 
   void _startAmbientLightTimer() {
@@ -559,15 +590,21 @@ class _TestScreenState extends State<TestScreen> {
       // Distance vision
       case 1:
         if (isPass) {
-          _promoteTo(levelConfig.nextLevelCorrection ?? 2);
+          int? next = _getNextEnabledLevel(levelConfig.nextLevelCorrection ?? 2, true);
+          if (next != null) _promoteTo(next);
+          else _showSummary('6/60');
         } else if (isFail) {
-          _demoteToLevel0();
+          int? next = _getNextEnabledLevel(0, false);
+          if (next != null) _demoteToLevel0();
+          else _openVisualTestScreen();
         }
         break;
 
       case 2:
         if (isPass) {
-          _promoteTo(levelConfig.nextLevelCorrection ?? 3);
+          int? next = _getNextEnabledLevel(levelConfig.nextLevelCorrection ?? 3, true);
+          if (next != null) _promoteTo(next);
+          else _showSummary('6/19');
         } else if (isFail) {
           logger.d('❌ Failed at level 2 — Final Acuity: 6/60');
           _showSummary('6/60');
@@ -576,7 +613,9 @@ class _TestScreenState extends State<TestScreen> {
 
       case 3:
         if (isPass) {
-          _promoteTo(levelConfig.nextLevelCorrection ?? 4);
+          int? next = _getNextEnabledLevel(levelConfig.nextLevelCorrection ?? 4, true);
+          if (next != null) _promoteTo(next);
+          else _showSummary('6/12');
         } else if (isFail) {
           logger.d('❌ Failed at level 3 — Final Acuity: 6/18');
           _showSummary('6/18');
@@ -623,7 +662,9 @@ class _TestScreenState extends State<TestScreen> {
           logger.d('✅ Passed at FC — Final Acuity: FC');
           _showSummary('FC');
         } else if (isFail && levelConfig.nextLevelWrong != null) {
-          _setLevel(levelConfig.nextLevelWrong!);
+          int? next = _getNextEnabledLevel(levelConfig.nextLevelWrong, false);
+          if (next != null) _setLevel(next);
+          else _showSummary('FC-failed');
         }
         break;
 
@@ -632,7 +673,9 @@ class _TestScreenState extends State<TestScreen> {
           logger.d('✅ PL- confirmed — Final Acuity: PL-');
           _showSummary('PL-');
         } else if (isFail && levelConfig.nextLevelWrong != null) {
-          _setLevel(levelConfig.nextLevelWrong!); // go to PL+
+          int? next = _getNextEnabledLevel(levelConfig.nextLevelWrong, false);
+          if (next != null) _setLevel(next);
+          else _showSummary('PL- failed');
         }
         break;
 
@@ -641,7 +684,9 @@ class _TestScreenState extends State<TestScreen> {
           logger.d('✅ PL+ confirmed — Final Acuity: PL+');
           _showSummary('PL+');
         } else if (isFail && levelConfig.nextLevelWrong != null) {
-          _setLevel(levelConfig.nextLevelWrong!); // back to PL-
+          int? next = _getNextEnabledLevel(levelConfig.nextLevelWrong, false);
+          if (next != null) _setLevel(next);
+          else _showSummary('PL+ failed');
         }
         break;
 

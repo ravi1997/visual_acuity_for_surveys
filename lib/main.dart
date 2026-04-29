@@ -14,6 +14,7 @@ import 'Logger/logger.dart';
 import 'screens/home_screen.dart';
 import 'screens/instructions_screen.dart';
 import 'screens/tutorial_screen.dart';
+import 'screens/settings_screen.dart';
 
 void main() {
   logger.i("initializing the app");
@@ -49,6 +50,7 @@ class VisualAcuityApp extends StatelessWidget {
         '/history': (context) => const HistoryScreen(),
         '/home': (context) => HomeScreen(),
         '/about': (context) => const AboutScreen(),
+        '/settings': (context) => const SettingsScreen(),
       },
     );
   }
